@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>AutoTrack</title>
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json">
+
+<!-- iOS PWA Meta Tags -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AutoTrack">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<!-- Android/Theme -->
+<meta name="theme-color" content="#0A1628">
+<meta name="mobile-web-app-capable" content="yes">
+
+<!-- Description -->
+<meta name="description" content="Hoja de vida de tu vehículo · AutoTrack Chicago">
+
+<style>
+:root{
+  --bg: #0A1628;
+  --bg2: #0F2040;
+  --surface: #162035;
+  --surface2: #1e2d48;
+  --border: rgba(255,255,255,0.1);
+  --accent: #4A90D9;
+  --accent2: #6CB4F0;
+  --text: #ffffff;
+  --text2: rgba(255,255,255,0.65);
+  --text3: rgba(255,255,255,0.35);
+  --green: #22c55e;
+  --yellow: #eab308;
+  --red: #ef4444;
+  --purple: #8b5cf6;
+  --radius: 14px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden}
+
+/* ── PAGES ── */
+.page{display:none;flex-direction:column;height:100%;overflow:hidden}
+.page.active{display:flex}
+
+/* ── LOADING ── */
+#page-loading{background:var(--bg);align-items:center;justify-content:center;gap:1.5rem}
+.loading-logo svg{width:56px;height:56px}
+.loading-wordmark{font-size:11px;font-weight:300;letter-spacing:6px;color:var(--text2)}
+.loader{width:32px;height:32px;border:2.5px solid rgba(255,255,255,0.1);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── ENTRY / UNLOCK ── */
+#page-entry{background:var(--bg);align-items:center;justify-content:center;padding:2rem}
+.entry-inner{width:100%;max-width:360px;text-align:center}
+.entry-logo{margin-bottom:2rem}
+.entry-logo svg{width:52px;height:45px}
+.entry-title{font-size:22px;font-weight:700;margin-bottom:6px;letter-spacing:1px}
+.entry-sub{font-size:14px;color:var(--text2);margin-bottom:2.5rem;line-height:1.5}
+.code-input-wrap{position:relative;margin-bottom:1rem}
+.code-input{width:100%;padding:16px 20px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);font-size:20px;font-weight:700;letter-spacing:6px;text-align:center;color:var(--text);text-transform:uppercase;outline:none;transition:border-color 0.2s}
+.code-input:focus{border-color:var(--accent)}
+.code-input::placeholder{font-size:13px;font-weight:400;letter-spacing:2px;color:var(--text3)}
+.entry-btn{width:100%;padding:16px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-size:16px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:opacity 0.2s}
+.entry-btn:active{opacity:0.8}
+.entry-error{font-size:13px;color:var(--red);margin-top:10px;display:none}
+.entry-hint{font-size:12px;color:var(--text3);margin-top:1.5rem;line-height:1.5}
+
+/* ── VEHICLE PAGE ── */
+#page-vehicle{background:var(--bg)}
+.veh-header{background:var(--bg2);padding-top:calc(var(--safe-top) + 16px);padding-bottom:0;flex-shrink:0}
+.veh-header-top{display:flex;align-items:center;justify-content:space-between;padding:0 20px 16px}
+.veh-logo{display:flex;align-items:center;gap:8px}
+.veh-logo svg{width:28px;height:24px}
+.veh-logo-text{font-size:10px;font-weight:300;letter-spacing:4px;color:var(--text2)}
+.veh-logout-btn{font-size:11px;color:var(--text3);background:transparent;border:1px solid var(--border);padding:5px 12px;border-radius:20px;cursor:pointer;font-family:inherit}
+
+.veh-hero{padding:0 20px 20px}
+.veh-emoji{font-size:48px;margin-bottom:8px}
+.veh-name{font-size:24px;font-weight:800;line-height:1.2}
+.veh-meta{font-size:13px;color:var(--text2);margin-top:4px}
+.veh-code-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(74,144,217,0.15);border:1px solid rgba(74,144,217,0.4);border-radius:8px;padding:4px 10px;font-size:11px;color:var(--accent2);font-weight:600;letter-spacing:1px;margin-top:8px}
+
+/* ── TABS ── */
+.tab-bar{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
+.tab-btn{flex:1;padding:12px 4px;font-size:10px;font-weight:600;color:var(--text3);background:transparent;border:none;cursor:pointer;letter-spacing:0.5px;transition:color 0.2s;display:flex;flex-direction:column;align-items:center;gap:3px;font-family:inherit}
+.tab-btn svg{width:18px;height:18px}
+.tab-btn.active{color:var(--accent)}
+.tab-btn.active svg path,.tab-btn.active svg circle,.tab-btn.active svg polyline,.tab-btn.active svg rect,.tab-btn.active svg line{stroke:var(--accent)}
+
+/* ── CONTENT AREA ── */
+.veh-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.veh-content::-webkit-scrollbar{display:none}
+.tab-content{display:none;padding:20px}
+.tab-content.active{display:block}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.card-title{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.info-row:last-child{border-bottom:none}
+.info-label{font-size:12px;color:var(--text2)}
+.info-val{font-size:13px;font-weight:600}
+
+/* ── MAINTENANCE ── */
+.maint-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.maint-item{background:var(--surface2);border-radius:12px;padding:14px;cursor:pointer;position:relative;overflow:hidden;transition:opacity 0.15s}
+.maint-item:active{opacity:0.7}
+.maint-icon{font-size:24px;margin-bottom:6px}
+.maint-label{font-size:12px;font-weight:700}
+.maint-date{font-size:10px;color:var(--text2);margin-top:2px}
+.maint-status{position:absolute;top:10px;right:10px;width:8px;height:8px;border-radius:50%}
+.maint-status.ok{background:var(--green)}
+.maint-status.soon{background:var(--yellow)}
+.maint-status.overdue{background:var(--red)}
+.maint-status.never{background:var(--text3)}
+.maint-bar{position:absolute;bottom:0;left:0;height:3px;border-radius:0 0 12px 12px;transition:width 0.3s}
+.maint-bar.ok{background:var(--green)}
+.maint-bar.soon{background:var(--yellow)}
+.maint-bar.overdue{background:var(--red)}
+
+/* ── SECTION LABEL ── */
+.section-label{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:10px;margin-top:4px}
+
+/* ── BUTTONS ── */
+.btn-full{width:100%;padding:15px;border:none;border-radius:var(--radius);font-size:15px;font-weight:700;cursor:pointer;letter-spacing:0.5px;transition:opacity 0.2s;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-full:active{opacity:0.8}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-surface{background:var(--surface2);color:var(--text)}
+.btn-green{background:#059669;color:#fff}
+.btn-wa{background:#25D366;color:#fff}
+
+/* ── BROWSE ── */
+.browse-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;display:flex;gap:12px;align-items:center}
+.browse-emoji{font-size:32px;flex-shrink:0}
+.browse-info{flex:1}
+.browse-name{font-size:14px;font-weight:700}
+.browse-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.browse-price{font-size:16px;font-weight:800;color:var(--accent2)}
+.badge-sm{font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;display:inline-block;margin-top:4px}
+.badge-clean{background:rgba(34,197,94,0.15);color:#4ade80}
+.badge-rebuild{background:rgba(234,179,8,0.15);color:#fbbf24}
+
+/* ── LIST YOUR CAR ── */
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:13px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-size:14px;color:var(--text);outline:none;transition:border-color 0.2s;font-family:inherit;-webkit-appearance:none}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent)}
+.form-group select option{background:#1a2a45;color:#fff}
+.form-group textarea{min-height:80px;resize:none}
+.form-success{display:none;text-align:center;padding:2rem 1rem}
+.form-success-icon{font-size:48px;margin-bottom:1rem}
+.form-success-title{font-size:18px;font-weight:700;margin-bottom:8px}
+.form-success-sub{font-size:13px;color:var(--text2);line-height:1.5}
+
+/* ── SHEET MODAL ── */
+.sheet-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500}
+.sheet-overlay.open{display:block}
+.sheet{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-radius:24px 24px 0 0;padding:0 20px calc(var(--safe-bottom) + 20px);max-height:90vh;overflow-y:auto;z-index:501;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1)}
+.sheet.open{transform:translateY(0)}
+.sheet-handle{width:40px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:12px auto 20px}
+.sheet-title{font-size:16px;font-weight:700;margin-bottom:16px;text-align:center}
+
+/* ── INSTALL BANNER ── */
+#install-banner{display:none;position:fixed;bottom:calc(var(--safe-bottom) + 16px);left:16px;right:16px;background:var(--surface2);border:1px solid var(--accent);border-radius:var(--radius);padding:14px 16px;z-index:400;flex-direction:row;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+#install-banner.visible{display:flex}
+.install-icon{font-size:28px;flex-shrink:0}
+.install-text{flex:1}
+.install-text strong{display:block;font-size:13px;font-weight:700;margin-bottom:2px}
+.install-text span{font-size:11px;color:var(--text2)}
+.install-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0}
+.install-dismiss{background:transparent;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:4px;flex-shrink:0;line-height:1}
+
+/* ── BROWSE & LIST PAGES ── */
+#page-browse,#page-list{background:var(--bg);flex-direction:column}
+.sub-header{background:var(--bg2);padding:calc(var(--safe-top) + 16px) 20px 16px;flex-shrink:0;display:flex;align-items:center;gap:12px}
+.back-btn{background:transparent;border:none;color:var(--text);cursor:pointer;font-size:20px;padding:4px;line-height:1;flex-shrink:0}
+.sub-title{font-size:18px;font-weight:700}
+.sub-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px}
+.sub-content::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="page active" id="page-loading">
+  <div class="loading-logo">
+    <svg viewBox="0 0 90 75" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <line x1="9" y1="70" x2="43" y2="7" stroke="white" stroke-width="5" stroke-linecap="round"/>
+      <line x1="43" y1="7" x2="61" y2="44" stroke="white" stroke-width="5" stroke-linecap="round"/>
+      <line x1="24" y1="47" x2="78" y2="64" stroke="white" stroke-width="5" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <div class="loading-wordmark">AUTOTRACK</div>
+  <div class="loader"></div>
+</div>
+
+<!-- ENTRY / CODE INPUT -->
+<div class="page" id="page-entry">
+  <div class="entry-inner">
+    <div class="entry-logo">
+      <svg viewBox="0 0 90 75" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="9" y1="70" x2="43" y2="7" stroke="white" stroke-width="5.5" stroke-linecap="round"/>
+        <line x1="43" y1="7" x2="61" y2="44" stroke="white" stroke-width="5.5" stroke-linecap="round"/>
+        <line x1="24" y1="47" x2="78" y2="64" stroke="white" stroke-width="5.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="entry-title">AutoTrack</div>
+    <p class="entry-sub">Ingresa el código único que te dimos con tu vehículo</p>
+    <div class="code-input-wrap">
+      <input type="text" class="code-input" id="code-input" placeholder="Ej: AT-A7K2" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    </div>
+    <button class="entry-btn" onclick="submitCode()">Ver mi vehículo →</button>
+    <div class="entry-error" id="entry-error">Código no encontrado. Verifica e intenta de nuevo.</div>
+    <p class="entry-hint">¿No tienes un código? Contacta a AutoTrack para obtenerlo junto con tu vehículo.</p>
+  </div>
+</div>
+
+<!-- VEHICLE PAGE -->
+<div class="page" id="page-vehicle">
+  <div class="veh-header">
+    <div class="veh-header-top">
+      <div class="veh-logo">
+        <svg viewBox="0 0 90 75" fill="none">
+          <line x1="9" y1="70" x2="43" y2="7" stroke="white" stroke-width="5" stroke-linecap="round"/>
+          <line x1="43" y1="7" x2="61" y2="44" stroke="white" stroke-width="5" stroke-linecap="round"/>
+          <line x1="24" y1="47" x2="78" y2="64" stroke="white" stroke-width="5" stroke-linecap="round"/>
+        </svg>
+        <span class="veh-logo-text">AUTOTRACK</span>
+      </div>
+      <button class="veh-logout-btn" onclick="logout()">Cambiar vehículo</button>
+    </div>
+    <div class="veh-hero">
+      <div class="veh-emoji" id="veh-emoji">🚗</div>
+      <div class="veh-name" id="veh-name">—</div>
+      <div class="veh-meta" id="veh-meta">—</div>
+      <div class="veh-code-chip" id="veh-code-chip">📱 —</div>
+    </div>
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-overview" onclick="switchTab('overview')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Info
+      </button>
+      <button class="tab-btn" id="tab-maint" onclick="switchTab('maint')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Mantenimiento
+      </button>
+      <button class="tab-btn" id="tab-more" onclick="switchTab('more')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>
+        Más
+      </button>
+    </div>
+  </div>
+
+  <div class="veh-content">
+    <!-- TAB: INFO -->
+    <div class="tab-content active" id="content-overview">
+      <div class="section-label">Especificaciones</div>
+      <div class="card">
+        <div class="info-row"><span class="info-label">Motor</span><span class="info-val" id="d-engine">—</span></div>
+        <div class="info-row"><span class="info-label">Transmisión</span><span class="info-val" id="d-trans">—</span></div>
+        <div class="info-row"><span class="info-label">Tracción</span><span class="info-val" id="d-drive">—</span></div>
+        <div class="info-row"><span class="info-label">Combustible</span><span class="info-val" id="d-fuel">—</span></div>
+        <div class="info-row"><span class="info-label">Cilindros</span><span class="info-val" id="d-cyl">—</span></div>
+        <div class="info-row"><span class="info-label">Carrocería</span><span class="info-val" id="d-body">—</span></div>
+        <div class="info-row"><span class="info-label">Color</span><span class="info-val" id="d-color">—</span></div>
+        <div class="info-row"><span class="info-label">Millaje</span><span class="info-val" id="d-miles">—</span></div>
+        <div class="info-row"><span class="info-label">Title</span><span class="info-val" id="d-title">—</span></div>
+        <div class="info-row"><span class="info-label">Llaves</span><span class="info-val" id="d-keys">—</span></div>
+      </div>
+      <div class="section-label">VIN</div>
+      <div class="card" style="padding:12px 16px">
+        <div style="font-size:13px;font-family:monospace;letter-spacing:1px;word-break:break-all" id="d-vin">—</div>
+      </div>
+      <div class="section-label" id="condition-section" style="display:none">Estado del vehículo</div>
+      <div class="card" id="condition-card" style="display:none">
+        <div style="font-size:13px;color:var(--text2);line-height:1.6" id="d-condition"></div>
+      </div>
+      <div class="section-label" id="extras-section" style="display:none">Equipamiento</div>
+      <div class="card" id="extras-card" style="display:none">
+        <div style="font-size:13px;color:var(--text2);line-height:1.6" id="d-extras"></div>
+      </div>
+
+      <div style="height:12px"></div>
+      <button class="btn-full btn-surface" onclick="openWhatsApp('info')">
+        💬 Contactar a AutoTrack
+      </button>
+      <div style="height:24px"></div>
+    </div>
+
+    <!-- TAB: MANTENIMIENTO -->
+    <div class="tab-content" id="content-maint">
+      <div class="section-label">Registro de mantenimiento</div>
+      <div class="maint-grid" id="maint-grid"></div>
+
+      <div style="height:12px"></div>
+      <div class="card" style="background:rgba(74,144,217,0.08);border-color:rgba(74,144,217,0.2)">
+        <div style="font-size:12px;color:var(--text2);line-height:1.6;text-align:center">
+          🟢 Al día &nbsp;·&nbsp; 🟡 Próximo (≥80%) &nbsp;·&nbsp; 🔴 Vencido<br>
+          Toca cada servicio para registrar una entrada
+        </div>
+      </div>
+      <div style="height:24px"></div>
+    </div>
+
+    <!-- TAB: MÁS -->
+    <div class="tab-content" id="content-more">
+      <div class="section-label">¿Qué deseas hacer?</div>
+      <button class="btn-full btn-surface" style="margin-bottom:10px;justify-content:flex-start;padding-left:20px;gap:14px" onclick="showPage('browse')">
+        <span style="font-size:22px">🚗</span>
+        <span>Ver más vehículos</span>
+        <span style="margin-left:auto;color:var(--text3)">→</span>
+      </button>
+      <button class="btn-full btn-surface" style="margin-bottom:10px;justify-content:flex-start;padding-left:20px;gap:14px" onclick="showPage('list')">
+        <span style="font-size:22px">🏷️</span>
+        <span>Rentar mi vehículo</span>
+        <span style="margin-left:auto;color:var(--text3)">→</span>
+      </button>
+      <button class="btn-full btn-wa" style="margin-bottom:10px;justify-content:flex-start;padding-left:20px;gap:14px" onclick="openWhatsApp('buy')">
+        <span style="font-size:22px">💬</span>
+        <span>Comprar otro vehículo</span>
+        <span style="margin-left:auto">→</span>
+      </button>
+
+      <div style="height:16px"></div>
+      <div class="section-label">App</div>
+      <div class="card">
+        <div class="info-row"><span class="info-label">Versión</span><span class="info-val">1.0</span></div>
+        <div class="info-row"><span class="info-label">Tu código</span><span class="info-val" id="more-code" style="font-family:monospace;letter-spacing:1px;color:var(--accent2)">—</span></div>
+      </div>
+      <div style="height:24px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BROWSE INVENTORY -->
+<div class="page" id="page-browse">
+  <div class="sub-header">
+    <button class="back-btn" onclick="showPage('vehicle')">←</button>
+    <div class="sub-title">Ver vehículos</div>
+  </div>
+  <div class="sub-content">
+    <div style="margin-bottom:16px">
+      <div style="font-size:13px;color:var(--text2);line-height:1.5">Explora nuestro inventario. Para obtener más información o agendar una prueba de manejo, contáctanos por WhatsApp.</div>
+    </div>
+    <div class="section-label">En venta</div>
+    <div id="browse-sale">
+      <div style="text-align:center;padding:2rem;color:var(--text3)">Cargando...</div>
+    </div>
+    <div class="section-label" style="margin-top:16px">En renta</div>
+    <div id="browse-rent">
+      <div style="text-align:center;padding:2rem;color:var(--text3)">Cargando...</div>
+    </div>
+    <div style="height:24px"></div>
+  </div>
+</div>
+
+<!-- LIST YOUR CAR -->
+<div class="page" id="page-list">
+  <div class="sub-header">
+    <button class="back-btn" onclick="showPage('vehicle')">←</button>
+    <div class="sub-title">Rentar mi vehículo</div>
+  </div>
+  <div class="sub-content">
+    <div id="list-form">
+      <div style="font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:20px">
+        Completa el formulario y nos ponemos en contacto contigo para coordinar el proceso de renta.
+      </div>
+      <div class="form-group">
+        <label>Tu nombre</label>
+        <input type="text" id="l-name" placeholder="Nombre completo">
+      </div>
+      <div class="form-group">
+        <label>Teléfono (WhatsApp)</label>
+        <input type="tel" id="l-phone" placeholder="+1 (786) 000-0000">
+      </div>
+      <div class="form-group">
+        <label>Ciudad</label>
+        <input type="text" id="l-city" placeholder="Chicago, IL">
+      </div>
+      <div class="form-group">
+        <label>Vehículo a rentar</label>
+        <input type="text" id="l-car" placeholder="Ej: 2020 Toyota Camry" readonly>
+      </div>
+      <div class="form-group">
+        <label>Millaje actual aprox.</label>
+        <input type="text" id="l-miles" placeholder="Ej: 45,000">
+      </div>
+      <div class="form-group">
+        <label>Disponible desde</label>
+        <input type="date" id="l-from">
+      </div>
+      <div class="form-group">
+        <label>Notas adicionales</label>
+        <textarea id="l-notes" placeholder="Estado del vehículo, disponibilidad, precio esperado..."></textarea>
+      </div>
+      <button class="btn-full btn-accent" onclick="submitRentRequest()">
+        📤 Enviar solicitud
+      </button>
+      <div style="height:24px"></div>
+    </div>
+    <div class="form-success" id="list-success">
+      <div class="form-success-icon">✅</div>
+      <div class="form-success-title">¡Solicitud enviada!</div>
+      <p class="form-success-sub">Nos pondremos en contacto contigo pronto por WhatsApp para coordinar los detalles de la renta.</p>
+      <button class="btn-full btn-surface" style="margin-top:1.5rem" onclick="showPage('vehicle')">Volver al inicio</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAINTENANCE SHEET -->
+<div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet()"></div>
+<div class="sheet" id="maint-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="sheet-title">Registrar mantenimiento</div>
+  <div class="form-group">
+    <label>Fecha</label>
+    <input type="date" id="s-date">
+  </div>
+  <div class="form-group">
+    <label>Millaje</label>
+    <input type="text" id="s-miles" placeholder="Ej: 52,340">
+  </div>
+  <div class="form-group">
+    <label>Costo (opcional)</label>
+    <input type="text" id="s-cost" placeholder="Ej: $85">
+  </div>
+  <div class="form-group">
+    <label>Notas (opcional)</label>
+    <textarea id="s-notes" placeholder="Taller, observaciones..."></textarea>
+  </div>
+  <div id="sheet-history" style="margin-bottom:16px"></div>
+  <button class="btn-full btn-accent" style="margin-bottom:8px" onclick="saveMainEntry()">✓ Guardar entrada</button>
+  <button class="btn-full btn-surface" onclick="closeSheet()">Cancelar</button>
+  <div style="height:8px"></div>
+</div>
+
+<!-- INSTALL BANNER -->
+<div id="install-banner">
+  <div class="install-icon">📲</div>
+  <div class="install-text">
+    <strong>Instalar AutoTrack</strong>
+    <span>Agregar a pantalla de inicio</span>
+  </div>
+  <button class="install-btn" onclick="installApp()">Instalar</button>
+  <button class="install-dismiss" onclick="dismissInstall()">×</button>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import {
+  getFirestore, collection, onSnapshot, addDoc, query, where, getDocs
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCnfdJLYdq7SGkakGv9eiDYZDgu3H91UsE",
+  authDomain: "autotrack-e8c42.firebaseapp.com",
+  projectId: "autotrack-e8c42",
+  storageBucket: "autotrack-e8c42.firebasestorage.app",
+  messagingSenderId: "213323890573",
+  appId: "1:213323890573:web:6b20040aa5bb74de5307c4"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ── Constants ─────────────────────────────────────────────
+const WA_NUMBER = '17869223853';
+const MAINT_TYPES = [
+  {id:'oil',   label:'Aceite',   icon:'🛢️', days:90,  miles:3000},
+  {id:'gas',   label:'Gasolina', icon:'⛽', days:null, miles:null},
+  {id:'tires', label:'Llantas',  icon:'🔄', days:180, miles:5000},
+  {id:'filter',label:'Filtro',   icon:'💨', days:365, miles:12000},
+  {id:'brakes',label:'Frenos',   icon:'🔧', days:730, miles:25000},
+  {id:'wash',  label:'Lavado',   icon:'🚿', days:14,  miles:null},
+  {id:'other', label:'Otro',     icon:'📋', days:null, miles:null},
+];
+
+// ── State ─────────────────────────────────────────────────
+let currentVehicle = null;
+let currentVehicleCode = null;
+let activeMaintType = null;
+
+// ── Init ──────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  await new Promise(r => setTimeout(r, 800)); // brief loading
+
+  const savedCode = localStorage.getItem('at_vehicle_code');
+  if(savedCode){
+    await loadVehicleByCode(savedCode);
+  } else {
+    showPage('entry');
+  }
+
+  // Load inventory for browse
+  loadInventory();
+
+  // Register service worker
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      console.log('SW registered:', reg.scope);
+    }).catch(e => console.log('SW error:', e));
+  }
+});
+
+// ── PWA Install Prompt ────────────────────────────────────
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const dismissed = localStorage.getItem('at_install_dismissed');
+  if(!dismissed){
+    document.getElementById('install-banner').classList.add('visible');
+  }
+});
+
+window.installApp = function(){
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(choice => {
+      if(choice.outcome === 'accepted') dismissInstall();
+      deferredPrompt = null;
+    });
+  }
+};
+
+window.dismissInstall = function(){
+  document.getElementById('install-banner').classList.remove('visible');
+  localStorage.setItem('at_install_dismissed', '1');
+};
+
+window.addEventListener('appinstalled', () => {
+  dismissInstall();
+});
+
+// ── Vehicle Lookup ────────────────────────────────────────
+window.submitCode = async function(){
+  const raw = document.getElementById('code-input').value.trim().toUpperCase().replace(/\s/g,'');
+  if(!raw) return;
+  document.getElementById('entry-error').style.display = 'none';
+  await loadVehicleByCode(raw);
+};
+
+document.getElementById('code-input').addEventListener('keydown', e => {
+  if(e.key === 'Enter') window.submitCode();
+});
+
+async function loadVehicleByCode(code){
+  showPage('loading');
+  try{
+    const q = query(collection(db,'sale_vehicles'), where('code','==',code));
+    const snap = await getDocs(q);
+    if(snap.empty){
+      document.getElementById('entry-error').style.display = 'block';
+      showPage('entry');
+      return;
+    }
+    const doc = snap.docs[0];
+    currentVehicle = {id: doc.id, ...doc.data()};
+    currentVehicleCode = code;
+    localStorage.setItem('at_vehicle_code', code);
+    populateVehiclePage(currentVehicle);
+    showPage('vehicle');
+  } catch(e){
+    console.error(e);
+    document.getElementById('entry-error').style.display = 'block';
+    document.getElementById('entry-error').textContent = 'Error de conexión. Intenta de nuevo.';
+    showPage('entry');
+  }
+}
+
+function populateVehiclePage(v){
+  document.getElementById('veh-emoji').textContent = v.emoji || '🚗';
+  document.getElementById('veh-name').textContent = `${v.year} ${v.make} ${v.model}`;
+  document.getElementById('veh-meta').textContent = `${v.miles} mi · ${v.color || ''} · ${v.title || ''} Title`;
+  document.getElementById('veh-code-chip').textContent = `📱 Código: ${v.code}`;
+  document.getElementById('more-code').textContent = v.code;
+
+  document.getElementById('d-engine').textContent = v.engine || '—';
+  document.getElementById('d-trans').textContent = v.trans || '—';
+  document.getElementById('d-drive').textContent = v.drive || '—';
+  document.getElementById('d-fuel').textContent = v.fuel || '—';
+  document.getElementById('d-cyl').textContent = v.cyl ? v.cyl + ' cilindros' : '—';
+  document.getElementById('d-body').textContent = v.body || '—';
+  document.getElementById('d-color').textContent = v.color || '—';
+  document.getElementById('d-miles').textContent = v.miles ? v.miles + ' mi' : '—';
+  document.getElementById('d-title').textContent = v.title || '—';
+  document.getElementById('d-keys').textContent = v.keys || '—';
+  document.getElementById('d-vin').textContent = v.vin || 'No disponible';
+
+  if(v.condition){
+    document.getElementById('condition-section').style.display = 'block';
+    document.getElementById('condition-card').style.display = 'block';
+    document.getElementById('d-condition').textContent = v.condition;
+  }
+  if(v.extras){
+    document.getElementById('extras-section').style.display = 'block';
+    document.getElementById('extras-card').style.display = 'block';
+    document.getElementById('d-extras').textContent = v.extras;
+  }
+
+  // Pre-fill list car form
+  document.getElementById('l-car').value = `${v.year} ${v.make} ${v.model}`;
+
+  renderMaintGrid();
+}
+
+// ── Maintenance ───────────────────────────────────────────
+function getMaintLogs(){
+  const key = `at_maint_${currentVehicleCode}`;
+  try{ return JSON.parse(localStorage.getItem(key)||'[]'); } catch{ return []; }
+}
+function saveMaintLogs(logs){
+  localStorage.setItem(`at_maint_${currentVehicleCode}`, JSON.stringify(logs));
+}
+function daysSince(dateStr){
+  if(!dateStr) return null;
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+}
+function getStatus(mt, last){
+  if(!last || !mt.days) return {status:'never', pct:0};
+  const d = daysSince(last.date);
+  const pct = d / mt.days;
+  if(pct >= 1) return {status:'overdue', pct:Math.min(pct,1)};
+  if(pct >= 0.8) return {status:'soon', pct};
+  return {status:'ok', pct};
+}
+
+function renderMaintGrid(){
+  const logs = getMaintLogs();
+  const grid = document.getElementById('maint-grid');
+  grid.innerHTML = MAINT_TYPES.map(mt => {
+    const entries = logs.filter(l => l.type === mt.id);
+    const last = entries.length ? entries.sort((a,b)=>new Date(b.date)-new Date(a.date))[0] : null;
+    const {status, pct} = getStatus(mt, last);
+    const dateLabel = last ? new Date(last.date).toLocaleDateString('es-US',{month:'short',day:'numeric',year:'numeric'}) : 'Sin registro';
+    const barW = mt.days ? Math.round(pct * 100) : 0;
+    return `
+      <div class="maint-item" onclick="openMaintSheet('${mt.id}')">
+        <div class="maint-status ${status==='never'?'never':status}"></div>
+        <div class="maint-icon">${mt.icon}</div>
+        <div class="maint-label">${mt.label}</div>
+        <div class="maint-date">${dateLabel}</div>
+        ${mt.days ? `<div class="maint-bar ${status==='never'?'ok':status}" style="width:${barW}%"></div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+window.openMaintSheet = function(typeId){
+  activeMaintType = MAINT_TYPES.find(m=>m.id===typeId);
+  if(!activeMaintType) return;
+
+  document.getElementById('sheet-title').textContent = `${activeMaintType.icon} ${activeMaintType.label}`;
+  document.getElementById('s-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('s-miles').value = currentVehicle?.miles || '';
+  document.getElementById('s-cost').value = '';
+  document.getElementById('s-notes').value = '';
+
+  // Show last 3 entries
+  const logs = getMaintLogs().filter(l=>l.type===typeId).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const histEl = document.getElementById('sheet-history');
+  if(logs.length){
+    histEl.innerHTML = `
+      <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">Historial</div>
+      ${logs.slice(0,3).map(l=>`
+        <div style="background:var(--surface);border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:12px">
+          <div style="font-weight:700">${new Date(l.date).toLocaleDateString('es-US',{month:'long',day:'numeric',year:'numeric'})}</div>
+          <div style="color:var(--text2);margin-top:2px">${l.miles?' · '+l.miles+' mi ':''}${l.cost?' · '+l.cost:''}${l.notes?' · '+l.notes:''}</div>
+        </div>`).join('')}`;
+  } else {
+    histEl.innerHTML = '';
+  }
+
+  document.getElementById('sheet-overlay').classList.add('open');
+  document.getElementById('maint-sheet').classList.add('open');
+};
+
+window.closeSheet = function(){
+  document.getElementById('sheet-overlay').classList.remove('open');
+  document.getElementById('maint-sheet').classList.remove('open');
+  activeMaintType = null;
+};
+
+window.saveMainEntry = function(){
+  if(!activeMaintType) return;
+  const date = document.getElementById('s-date').value;
+  if(!date){ alert('Selecciona una fecha'); return; }
+
+  const logs = getMaintLogs();
+  logs.push({
+    type: activeMaintType.id,
+    date,
+    miles: document.getElementById('s-miles').value.trim(),
+    cost: document.getElementById('s-cost').value.trim(),
+    notes: document.getElementById('s-notes').value.trim(),
+    createdAt: Date.now()
+  });
+  saveMaintLogs(logs);
+  renderMaintGrid();
+  closeSheet();
+};
+
+// ── Inventory Browse ──────────────────────────────────────
+function loadInventory(){
+  onSnapshot(collection(db,'sale_vehicles'), snap => {
+    const data = snap.docs.map(d=>({id:d.id,...d.data()}));
+    const el = document.getElementById('browse-sale');
+    if(!data.length){ el.innerHTML='<div style="color:var(--text3);font-size:13px;padding:1rem">Sin vehículos disponibles</div>'; return; }
+    el.innerHTML = data.map(v=>`
+      <div class="browse-card">
+        <div class="browse-emoji">${v.emoji||'🚗'}</div>
+        <div class="browse-info">
+          <div class="browse-name">${v.year} ${v.make} ${v.model}</div>
+          <div class="browse-sub">${v.miles} mi · ${v.color||''}</div>
+          <span class="badge-sm ${v.title==='Clean'?'badge-clean':'badge-rebuild'}">${v.title} Title</span>
+        </div>
+        <div style="text-align:right">
+          <div class="browse-price">$${v.price}</div>
+          <button onclick="openWhatsApp('buy','${v.year} ${v.make} ${v.model}')" style="font-size:11px;background:#25D366;color:#fff;border:none;border-radius:6px;padding:5px 10px;cursor:pointer;margin-top:6px;font-family:inherit;font-weight:600">WhatsApp</button>
+        </div>
+      </div>`).join('');
+  });
+
+  onSnapshot(collection(db,'rent_vehicles'), snap => {
+    const data = snap.docs.map(d=>({id:d.id,...d.data()}));
+    const el = document.getElementById('browse-rent');
+    if(!data.length){ el.innerHTML='<div style="color:var(--text3);font-size:13px;padding:1rem">Sin vehículos disponibles</div>'; return; }
+    el.innerHTML = data.map(v=>`
+      <div class="browse-card">
+        <div class="browse-emoji">${v.emoji||'🚗'}</div>
+        <div class="browse-info">
+          <div class="browse-name">${v.year} ${v.make} ${v.model}</div>
+          <div class="browse-sub">${v.miles} mi · ${v.color||''}</div>
+          <span class="badge-sm ${v.title==='Clean'?'badge-clean':'badge-rebuild'}">${v.title} Title</span>
+        </div>
+        <div style="text-align:right">
+          <div class="browse-price">$${v.priceDay}/día</div>
+          <button onclick="openWhatsApp('rent','${v.year} ${v.make} ${v.model}')" style="font-size:11px;background:#25D366;color:#fff;border:none;border-radius:6px;padding:5px 10px;cursor:pointer;margin-top:6px;font-family:inherit;font-weight:600">WhatsApp</button>
+        </div>
+      </div>`).join('');
+  });
+}
+
+// ── Rent Request ──────────────────────────────────────────
+window.submitRentRequest = async function(){
+  const name = document.getElementById('l-name').value.trim();
+  const phone = document.getElementById('l-phone').value.trim();
+  if(!name||!phone){ alert('Por favor completa tu nombre y teléfono'); return; }
+
+  try{
+    await addDoc(collection(db,'rent_requests'),{
+      name,
+      phone,
+      city: document.getElementById('l-city').value.trim(),
+      carModel: document.getElementById('l-car').value.trim(),
+      mileage: document.getElementById('l-miles').value.trim(),
+      dateFrom: document.getElementById('l-from').value,
+      notes: document.getElementById('l-notes').value.trim(),
+      status: 'new',
+      source: 'app',
+      vehicleCode: currentVehicleCode,
+      createdAt: Date.now()
+    });
+    document.getElementById('list-form').style.display='none';
+    document.getElementById('list-success').style.display='block';
+  } catch(e){
+    alert('Error al enviar. Intenta de nuevo.');
+  }
+};
+
+// ── WhatsApp ──────────────────────────────────────────────
+window.openWhatsApp = function(type, car=''){
+  let msg = '';
+  if(type==='info'){
+    const v = currentVehicle;
+    msg = `Hola! Soy cliente de AutoTrack. Tengo el vehículo ${v.year} ${v.make} ${v.model} (código ${currentVehicleCode}) y necesito información.`;
+  } else if(type==='buy'){
+    msg = `Hola AutoTrack! Me interesa comprar${car?' el '+car:' un vehículo'}. ¿Pueden darme más información?`;
+  } else if(type==='rent'){
+    msg = `Hola AutoTrack! Me interesa rentar${car?' el '+car:' un vehículo'}. ¿Qué necesito?`;
+  }
+  window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`,'_blank');
+};
+
+// ── Navigation ────────────────────────────────────────────
+window.showPage = function(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+};
+
+function showPage(id){ window.showPage(id); }
+
+window.switchTab = function(tab){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('content-'+tab).classList.add('active');
+};
+
+window.logout = function(){
+  if(confirm('¿Cambiar de vehículo? Tendrás que ingresar un nuevo código.')){
+    localStorage.removeItem('at_vehicle_code');
+    currentVehicle = null;
+    currentVehicleCode = null;
+    document.getElementById('code-input').value = '';
+    document.getElementById('entry-error').style.display='none';
+    showPage('entry');
+  }
+};
+</script>
+</body>
+</html>
